@@ -18,7 +18,7 @@
 
         <main>
             <div id="product-list" class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <!-- Jika ini tidak terisi, berarti JavaScript tidak berjalan -->
+                <!-- Daftar produk akan dimuat di sini oleh JavaScript -->
             </div>
         </main>
     </div>
@@ -47,12 +47,10 @@
         </div>
     </div>
 
-    <!-- 
-      PERUBAHAN PENTING UNTUK DEBUGGING:
-      - Kita tidak lagi memuat firebase-init.js
-      - Kita tidak lagi menggunakan type="module" untuk order.js
-    -->
+    <!-- Memuat skrip -->
+    <!-- Path absolut (/) sangat penting untuk Vercel -->
     <script src="/js/config.js"></script>
-    <script src="/js/order.js"></script>
+    <script src="/js/firebase-init.js" type="module"></script>
+    <script src="/js/order.js" type="module"></script>
 </body>
 </html>
