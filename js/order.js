@@ -1,7 +1,8 @@
-// Impor database dari file inisialisasi
-import { db, collection, addDoc } from './firebase-init.js';
+// Impor fungsi yang diperlukan dari Firebase, termasuk getDocs dan query
+import { db, collection, addDoc, getDocs, query, orderBy } from './firebase-init.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Elemen-elemen dari halaman HTML
     const productListEl = document.getElementById('product-list');
     const tableInfoEl = document.getElementById('table-info');
     const cartContainerEl = document.getElementById('cart-container');
@@ -11,10 +12,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const successModal = document.getElementById('success-modal');
     const closeSuccessModalBtn = document.getElementById('close-success-modal-btn');
 
+    // State (data) untuk halaman ini
+    let allProducts = []; // Variabel untuk menyimpan produk dari Firestore
     let cart = [];
     let tableNumber = 'N/A';
 
-    // Fungsi untuk mendapatkan nomor meja dari URL
+    // Fungsi untuk mengambil data produk dari Firestore
+    const fetchProducts = async () => {
+        const productsCollection = collection(db, 'products');
+        const q = query(productsCollection, orderBy("name"));
+        const snapshot = await getDocs(q);
+        
+        allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Setelah produk berhasil diambil, tampilkan ke halaman
+        renderProducts();
+    };
+
+    // Fungsi untuk mendapatkan nomor meja dari parameter URL
     const getTableNumber = () => {
         const urlParams = new URLSearchParams(window.location.search);
         const table = urlParams.get('table');
@@ -27,10 +42,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Fungsi untuk merender produk
+    // Fungsi untuk menampilkan semua produk ke halaman
     const renderProducts = () => {
         productListEl.innerHTML = '';
-        products.forEach(product => {
+        if (allProducts.length === 0) {
+            productListEl.innerHTML = '<p class="text-center text-gray-500 col-span-full">Memuat menu...</p>';
+            return;
+        }
+        allProducts.forEach(product => {
             const card = `
                 <div class="bg-white rounded-lg shadow p-3 flex flex-col items-center cursor-pointer hover:shadow-xl transition-shadow" data-id="${product.id}">
                     <img src="${product.image}" alt="${product.name}" class="w-full h-24 object-cover rounded-md mb-3">
@@ -42,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // Fungsi untuk mengupdate tampilan keranjang
+    // Fungsi untuk memperbarui tampilan keranjang belanja
     const updateCartView = () => {
         if (cart.length > 0) {
             cartContainerEl.classList.remove('translate-y-full');
@@ -57,9 +76,10 @@ document.addEventListener('DOMContentLoaded', () => {
         cartTotalEl.textContent = formatRupiah(totalPrice);
     };
 
-    // Fungsi untuk menambah item ke keranjang
+    // Fungsi untuk menambahkan produk ke keranjang
     const addToCart = (productId) => {
-        const product = products.find(p => p.id === productId);
+        // Menggunakan 'allProducts' yang diambil dari Firestore
+        const product = allProducts.find(p => p.id === productId);
         const itemInCart = cart.find(item => item.id === productId);
 
         if (itemInCart) {
@@ -70,8 +90,9 @@ document.addEventListener('DOMContentLoaded', () => {
         updateCartView();
     };
 
-    // Fungsi untuk mengirim pesanan ke Firestore
+    // Fungsi untuk mengirim pesanan ke Firebase
     const submitOrder = async () => {
+        // ... (Fungsi ini tidak perlu diubah)
         if (cart.length === 0) {
             alert("Keranjang Anda kosong.");
             return;
@@ -89,14 +110,14 @@ document.addEventListener('DOMContentLoaded', () => {
             items: cart,
             total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
             status: 'Menunggu Pembayaran',
-            paymentMethod: 'Cash', // Sesuai permintaan, default ke Cash
+            paymentMethod: 'Cash',
             timestamp: new Date()
         };
 
         try {
             await addDoc(collection(db, "orders"), orderData);
             successModal.classList.remove('hidden');
-            cart = []; // Kosongkan keranjang setelah berhasil
+            cart = [];
             updateCartView();
         } catch (e) {
             console.error("Error adding document: ", e);
@@ -111,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
     productListEl.addEventListener('click', (e) => {
         const card = e.target.closest('[data-id]');
         if (card) {
-            addToCart(parseInt(card.dataset.id));
+            addToCart(card.dataset.id);
         }
     });
 
@@ -121,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
         successModal.classList.add('hidden');
     });
 
-    // Inisialisasi halaman
+    // Menjalankan fungsi-fungsi ini saat halaman pertama kali dimuat
     getTableNumber();
-    renderProducts();
+    fetchProducts(); // Mengambil produk dari Firestore saat halaman dimuat
 });
