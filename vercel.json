@@ -11,10 +11,6 @@
     {
       "source": "/order",
       "destination": "/order/index.html"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
     }
   ]
 }
