@@ -1,6 +1,0 @@
-/* Anda bisa menambahkan custom CSS di sini jika diperlukan */
-@media print {
-    #receipt-template {
-        display: block;
-    }
-}
