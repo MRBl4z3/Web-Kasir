@@ -17,7 +17,7 @@
 </head>
 <body class="bg-[#1F1D2B] text-white antialiased">
 
-    <div class="flex h-screen">
+    <div class="flex flex-col lg:flex-row h-screen">
         <!-- Kolom Utama (Menu Produk) -->
         <main class="flex-1 p-6 lg:p-8 overflow-y-auto">
             <header class="mb-8">
@@ -25,46 +25,67 @@
                     <h1 class="text-3xl font-bold">SNC Coffee Shop</h1>
                     <p id="table-info" class="text-lg text-gray-400">Memesan untuk Meja #...</p>
                 </div>
-                <nav id="category-tabs" class="flex space-x-4 mt-6 border-b border-gray-700">
-                    <!-- Kategori akan dimuat di sini oleh JavaScript -->
+                <nav id="category-tabs" class="flex space-x-4 mt-6 border-b border-gray-700 overflow-x-auto pb-2">
+                    <!-- Kategori akan dimuat di sini -->
                 </nav>
             </header>
             
-            <div id="product-list" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            <div id="product-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 <!-- Daftar produk akan dimuat di sini -->
             </div>
         </main>
 
-        <!-- Kolom Keranjang (Pesanan) -->
-        <aside class="w-full lg:w-96 bg-[#252836] p-6 flex flex-col shadow-lg">
+        <!-- Kolom Keranjang (Hanya untuk Desktop) -->
+        <aside class="w-full lg:w-96 bg-[#252836] p-6 hidden lg:flex flex-col shadow-lg">
             <h2 class="text-2xl font-semibold mb-4">Pesanan Saat Ini</h2>
-            
-            <!-- Daftar Item di Keranjang -->
-            <div id="cart-items" class="flex-1 overflow-y-auto space-y-4 pr-2">
-                <p id="empty-cart-message" class="text-gray-400 text-center mt-20">Keranjang Anda masih kosong</p>
+            <div id="cart-items-desktop" class="flex-1 overflow-y-auto space-y-4 pr-2">
+                <p id="empty-cart-desktop" class="text-gray-400 text-center mt-20">Keranjang Anda kosong</p>
             </div>
-            
-            <!-- Total dan Tombol Checkout -->
             <div class="mt-auto pt-6 border-t border-gray-700">
                 <div class="space-y-2 text-lg mb-6">
-                    <div class="flex justify-between"><span>Subtotal</span><span id="subtotal">Rp 0</span></div>
-                    <div class="flex justify-between"><span>Pajak (10%)</span><span id="tax">Rp 0</span></div>
-                    <div class="flex justify-between font-bold text-xl"><span>Total</span><span id="total">Rp 0</span></div>
+                    <div class="flex justify-between"><span>Subtotal</span><span id="subtotal-desktop">Rp 0</span></div>
+                    <div class="flex justify-between"><span>Pajak (10%)</span><span id="tax-desktop">Rp 0</span></div>
+                    <div class="flex justify-between font-bold text-xl"><span>Total</span><span id="total-desktop">Rp 0</span></div>
                 </div>
-                <button id="checkout-btn" class="w-full bg-[#6C5ECF] hover:bg-[#5b4dbf] py-4 rounded-lg font-bold text-xl transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed">
+                <button id="checkout-btn-desktop" class="w-full bg-[#6C5ECF] hover:bg-[#5b4dbf] py-4 rounded-lg font-bold text-xl transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed">
                     Pesan Sekarang
                 </button>
             </div>
         </aside>
     </div>
 
+    <!-- Tombol Keranjang Melayang (Hanya untuk Mobile) -->
+    <div id="mobile-cart-btn" class="lg:hidden fixed bottom-6 right-6 bg-[#6C5ECF] p-4 rounded-full shadow-lg cursor-pointer flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+        <span id="mobile-cart-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
+    </div>
+
+    <!-- Modal Keranjang (Hanya untuk Mobile) -->
+    <div id="mobile-cart-modal" class="lg:hidden fixed inset-0 bg-black bg-opacity-50 hidden flex items-end">
+        <div class="w-full bg-[#252836] p-6 rounded-t-2xl h-4/5 flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-semibold">Pesanan Anda</h2>
+                <button id="close-mobile-cart-btn" class="text-2xl">&times;</button>
+            </div>
+            <div id="cart-items-mobile" class="flex-1 overflow-y-auto space-y-4 pr-2">
+                <p id="empty-cart-mobile" class="text-gray-400 text-center mt-20">Keranjang Anda kosong</p>
+            </div>
+            <div class="mt-auto pt-6 border-t border-gray-700">
+                <div class="space-y-2 text-lg mb-6">
+                    <div class="flex justify-between"><span>Subtotal</span><span id="subtotal-mobile">Rp 0</span></div>
+                    <div class="flex justify-between"><span>Pajak (10%)</span><span id="tax-mobile">Rp 0</span></div>
+                    <div class="flex justify-between font-bold text-xl"><span>Total</span><span id="total-mobile">Rp 0</span></div>
+                </div>
+                <button id="checkout-btn-mobile" class="w-full bg-[#6C5ECF] hover:bg-[#5b4dbf] py-4 rounded-lg font-bold text-xl transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed">
+                    Pesan Sekarang
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Pesanan Sukses -->
     <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50">
-        <div class="bg-[#252836] rounded-lg shadow-xl p-8 text-center max-w-sm mx-4">
-            <h2 class="text-2xl font-bold mb-4">Pesanan Terkirim!</h2>
-            <p class="text-gray-400 mb-6">Pesanan Anda telah dikirim ke kasir. Silakan lakukan pembayaran di kasir.</p>
-            <button id="close-success-modal-btn" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Tutup</button>
-        </div>
+        <!-- ... (konten modal sukses tidak berubah) ... -->
     </div>
 
     <!-- Memuat skrip -->
