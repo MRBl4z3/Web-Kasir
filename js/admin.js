@@ -1,21 +1,21 @@
-// Impor fungsi dari Firebase, termasuk 'where' untuk query laporan
-import { db, collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, query, orderBy, getDocs, where } from './firebase-init.js';
+// Impor fungsi yang diperlukan dari Firebase
+import { db, collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, query, orderBy, getDocs } from './firebase-init.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Cek status login
+    // Memeriksa apakah admin sudah login
     if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
-        window.location.href = '/admin/index.html';
+        window.location.href = '/admin/index.html'; // Jika belum, alihkan ke halaman login
         return;
     }
 
-    // Elemen-elemen utama
+    // Mengambil semua elemen yang diperlukan dari halaman HTML
     const logoutBtn = document.getElementById('logout-btn');
     const tabProducts = document.getElementById('tab-products');
     const tabReports = document.getElementById('tab-reports');
     const contentProducts = document.getElementById('content-products');
     const contentReports = document.getElementById('content-reports');
 
-    // Elemen Manajemen Produk
+    // Elemen untuk form manajemen produk
     const productListAdminEl = document.getElementById('product-list-admin');
     const productForm = document.getElementById('product-form');
     const formTitle = document.getElementById('form-title');
@@ -27,45 +27,51 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveBtn = document.getElementById('save-btn');
     const cancelBtn = document.getElementById('cancel-btn');
 
-    // Elemen Laporan
+    // Elemen untuk laporan penjualan
     const reportTotalTransactions = document.getElementById('report-total-transactions');
     const reportTotalRevenue = document.getElementById('report-total-revenue');
     const reportBestSeller = document.getElementById('report-best-seller');
 
-    // --- LOGIKA UMUM ---
+    // --- LOGIKA UTAMA & NAVIGASI TAB ---
 
+    // Fungsi untuk logout
     logoutBtn.addEventListener('click', () => {
         sessionStorage.removeItem('isAdminLoggedIn');
         window.location.href = '/admin/index.html';
     });
 
+    // Fungsi untuk berpindah antar tab
     const switchTab = (activeTab) => {
-        const tabs = [tabProducts, tabReports];
-        const contents = [contentProducts, contentReports];
+        const tabs = {
+            products: { btn: tabProducts, content: contentProducts },
+            reports: { btn: tabReports, content: contentReports }
+        };
 
-        tabs.forEach((tab, index) => {
-            if (tab === activeTab) {
-                tab.classList.add('text-indigo-400', 'border-indigo-400');
-                tab.classList.remove('text-gray-400', 'hover:text-white', 'border-b-2');
-                contents[index].classList.remove('hidden');
+        for (const key in tabs) {
+            const tab = tabs[key];
+            if (tab.btn === activeTab) {
+                tab.btn.classList.add('text-indigo-400', 'border-indigo-400');
+                tab.btn.classList.remove('text-gray-400', 'hover:text-white');
+                tab.content.classList.remove('hidden');
             } else {
-                tab.classList.remove('text-indigo-400', 'border-indigo-400');
-                tab.classList.add('text-gray-400', 'hover:text-white');
-                contents[index].classList.add('hidden');
+                tab.btn.classList.remove('text-indigo-400', 'border-indigo-400');
+                tab.btn.classList.add('text-gray-400', 'hover:text-white');
+                tab.content.classList.add('hidden');
             }
-        });
+        }
     };
 
     tabProducts.addEventListener('click', () => switchTab(tabProducts));
     tabReports.addEventListener('click', () => {
         switchTab(tabReports);
-        generateReports();
+        generateReports(); // Panggil fungsi laporan saat tab diklik
     });
 
     // --- LOGIKA MANAJEMEN PRODUK ---
 
     const productsCollectionRef = collection(db, 'products');
 
+    // Fungsi untuk membersihkan form setelah submit
     const resetForm = () => {
         productForm.reset();
         productIdInput.value = '';
@@ -74,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cancelBtn.classList.add('hidden');
     };
 
+    // Fungsi untuk menampilkan daftar produk
     const renderProductList = (products) => {
         productListAdminEl.innerHTML = '';
         if (products.length === 0) {
@@ -97,12 +104,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
     
+    // Mendengarkan perubahan pada koleksi produk secara real-time
     const qProducts = query(productsCollectionRef, orderBy("name"));
     onSnapshot(qProducts, (snapshot) => {
         const products = snapshot.docs.map(doc => ({ id: doc.id, data: doc.data() }));
         renderProductList(products);
     });
 
+    // Event listener untuk form submit (tambah/update produk)
     productForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = productIdInput.value;
@@ -114,10 +123,10 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            if (id) {
+            if (id) { // Jika ada ID, berarti update
                 const productRef = doc(db, 'products', id);
                 await updateDoc(productRef, productData);
-            } else {
+            } else { // Jika tidak ada ID, berarti tambah baru
                 await addDoc(productsCollectionRef, productData);
             }
             resetForm();
@@ -127,6 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Event listener untuk tombol edit dan hapus
     productListAdminEl.addEventListener('click', (e) => {
         const target = e.target;
         const id = target.dataset.id;
@@ -156,23 +166,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     cancelBtn.addEventListener('click', resetForm);
 
-    // --- LOGIKA LAPORAN PENJUALAN ---
+    // --- LOGIKA LAPORAN PENJUALAN (VERSI DIPERBAIKI) ---
 
     const generateReports = async () => {
         try {
             const ordersCollectionRef = collection(db, 'orders');
-            // PERBAIKAN: Menggunakan 'where' yang sudah diimpor
-            const qOrders = query(ordersCollectionRef, where("status", "==", "Selesai"));
-            const snapshot = await getDocs(qOrders);
+            const snapshot = await getDocs(ordersCollectionRef);
             
-            const finishedOrders = snapshot.docs.map(doc => doc.data());
+            // Ambil semua pesanan, lalu saring yang sudah "Selesai" di browser
+            const allOrders = snapshot.docs.map(doc => doc.data());
+            const finishedOrders = allOrders.filter(order => order.status === "Selesai");
 
+            // Kalkulasi dasar
             const totalTransactions = finishedOrders.length;
             const totalRevenue = finishedOrders.reduce((sum, order) => sum + order.total, 0);
 
             reportTotalTransactions.textContent = totalTransactions;
             reportTotalRevenue.textContent = formatRupiah(totalRevenue);
 
+            // Kalkulasi produk terlaris
             const itemCounts = {};
             finishedOrders.forEach(order => {
                 order.items.forEach(item => {
@@ -191,9 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
             reportBestSeller.textContent = bestSeller;
         } catch (error) {
             console.error("Error generating reports: ", error);
-            reportTotalTransactions.textContent = "Error";
-            reportTotalRevenue.textContent = "Error";
-            reportBestSeller.textContent = "Error";
+            alert("Gagal membuat laporan!");
         }
     };
 });
