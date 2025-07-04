@@ -1,5 +1,5 @@
-// Impor fungsi dari Firebase
-import { db, collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, query, orderBy, getDocs } from './firebase-init.js';
+// Impor fungsi dari Firebase, termasuk 'where' untuk query laporan
+import { db, collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, query, orderBy, getDocs, where } from './firebase-init.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Cek status login
@@ -46,11 +46,11 @@ document.addEventListener('DOMContentLoaded', () => {
         tabs.forEach((tab, index) => {
             if (tab === activeTab) {
                 tab.classList.add('text-indigo-400', 'border-indigo-400');
-                tab.classList.remove('text-gray-400');
+                tab.classList.remove('text-gray-400', 'hover:text-white', 'border-b-2');
                 contents[index].classList.remove('hidden');
             } else {
                 tab.classList.remove('text-indigo-400', 'border-indigo-400');
-                tab.classList.add('text-gray-400');
+                tab.classList.add('text-gray-400', 'hover:text-white');
                 contents[index].classList.add('hidden');
             }
         });
@@ -59,12 +59,12 @@ document.addEventListener('DOMContentLoaded', () => {
     tabProducts.addEventListener('click', () => switchTab(tabProducts));
     tabReports.addEventListener('click', () => {
         switchTab(tabReports);
-        generateReports(); // Generate laporan saat tab diklik
+        generateReports();
     });
 
     // --- LOGIKA MANAJEMEN PRODUK ---
 
-    const productsCollection = collection(db, 'products');
+    const productsCollectionRef = collection(db, 'products');
 
     const resetForm = () => {
         productForm.reset();
@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderProductList = (products) => {
         productListAdminEl.innerHTML = '';
         if (products.length === 0) {
-            productListAdminEl.innerHTML = '<p class="text-gray-400">Belum ada produk.</p>';
+            productListAdminEl.innerHTML = '<p class="text-gray-400 text-center">Belum ada produk. Silakan tambahkan produk baru.</p>';
             return;
         }
         products.forEach(product => {
@@ -97,9 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
     
-    // Mendengarkan perubahan pada koleksi produk secara real-time
-    const q = query(productsCollection, orderBy("name"));
-    onSnapshot(q, (snapshot) => {
+    const qProducts = query(productsCollectionRef, orderBy("name"));
+    onSnapshot(qProducts, (snapshot) => {
         const products = snapshot.docs.map(doc => ({ id: doc.id, data: doc.data() }));
         renderProductList(products);
     });
@@ -114,13 +113,18 @@ document.addEventListener('DOMContentLoaded', () => {
             image: productImageInput.value,
         };
 
-        if (id) { // Update produk
-            const productRef = doc(db, 'products', id);
-            await updateDoc(productRef, productData);
-        } else { // Tambah produk baru
-            await addDoc(productsCollection, productData);
+        try {
+            if (id) {
+                const productRef = doc(db, 'products', id);
+                await updateDoc(productRef, productData);
+            } else {
+                await addDoc(productsCollectionRef, productData);
+            }
+            resetForm();
+        } catch (error) {
+            console.error("Error saving product: ", error);
+            alert("Gagal menyimpan produk!");
         }
-        resetForm();
     });
 
     productListAdminEl.addEventListener('click', (e) => {
@@ -155,38 +159,41 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- LOGIKA LAPORAN PENJUALAN ---
 
     const generateReports = async () => {
-        const ordersCollection = collection(db, 'orders');
-        const snapshot = await getDocs(query(ordersCollection, where("status", "==", "Selesai")));
-        
-        const finishedOrders = snapshot.docs.map(doc => doc.data());
+        try {
+            const ordersCollectionRef = collection(db, 'orders');
+            // PERBAIKAN: Menggunakan 'where' yang sudah diimpor
+            const qOrders = query(ordersCollectionRef, where("status", "==", "Selesai"));
+            const snapshot = await getDocs(qOrders);
+            
+            const finishedOrders = snapshot.docs.map(doc => doc.data());
 
-        // Kalkulasi dasar
-        const totalTransactions = finishedOrders.length;
-        const totalRevenue = finishedOrders.reduce((sum, order) => sum + order.total, 0);
+            const totalTransactions = finishedOrders.length;
+            const totalRevenue = finishedOrders.reduce((sum, order) => sum + order.total, 0);
 
-        reportTotalTransactions.textContent = totalTransactions;
-        reportTotalRevenue.textContent = formatRupiah(totalRevenue);
+            reportTotalTransactions.textContent = totalTransactions;
+            reportTotalRevenue.textContent = formatRupiah(totalRevenue);
 
-        // Kalkulasi produk terlaris
-        const itemCounts = {};
-        finishedOrders.forEach(order => {
-            order.items.forEach(item => {
-                if (itemCounts[item.name]) {
-                    itemCounts[item.name] += item.quantity;
-                } else {
-                    itemCounts[item.name] = item.quantity;
-                }
+            const itemCounts = {};
+            finishedOrders.forEach(order => {
+                order.items.forEach(item => {
+                    itemCounts[item.name] = (itemCounts[item.name] || 0) + item.quantity;
+                });
             });
-        });
 
-        let bestSeller = '-';
-        let maxCount = 0;
-        for (const itemName in itemCounts) {
-            if (itemCounts[itemName] > maxCount) {
-                maxCount = itemCounts[itemName];
-                bestSeller = itemName;
+            let bestSeller = '-';
+            let maxCount = 0;
+            for (const itemName in itemCounts) {
+                if (itemCounts[itemName] > maxCount) {
+                    maxCount = itemCounts[itemName];
+                    bestSeller = itemName;
+                }
             }
+            reportBestSeller.textContent = bestSeller;
+        } catch (error) {
+            console.error("Error generating reports: ", error);
+            reportTotalTransactions.textContent = "Error";
+            reportTotalRevenue.textContent = "Error";
+            reportBestSeller.textContent = "Error";
         }
-        reportBestSeller.textContent = bestSeller;
     };
 });
