@@ -3,13 +3,15 @@
 // =================================================================
 // PENTING: Pastikan nilai ini sudah sesuai dengan konfigurasi Firebase Anda.
 const firebaseConfig = {
-    apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    authDomain: "nama-proyek-anda.firebaseapp.com",
-    projectId: "nama-proyek-anda",
-    storageBucket: "nama-proyek-anda.appspot.com",
-    messagingSenderId: "1234567890",
-    appId: "1:1234567890:web:abcdef1234567890"
-  };
+  apiKey: "AIzaSyCMkqQj4MeRpV3dbopUmWS7xsQesW_jm_A",
+  authDomain: "snc-coffee-shop.firebaseapp.com",
+  projectId: "snc-coffee-shop",
+  storageBucket: "snc-coffee-shop.firebasestorage.app",
+  messagingSenderId: "653373485984",
+  appId: "1:653373485984:web:817802b1fd47a1ab5e2ac5",
+  measurementId: "G-T2YM55Z6NE"
+};
+
   
   
   // =================================================================
