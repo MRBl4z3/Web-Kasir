@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mobileCartBtn = document.getElementById('mobile-cart-btn');
     const mobileCartCount = document.getElementById('mobile-cart-count');
     const mobileCartModal = document.getElementById('mobile-cart-modal');
+    const mobileCartSheet = document.getElementById('mobile-cart-sheet'); // Elemen panel yang akan dianimasikan
     const closeMobileCartBtn = document.getElementById('close-mobile-cart-btn');
     const cartItemsMobileEl = document.getElementById('cart-items-mobile');
     const emptyCartMobileEl = document.getElementById('empty-cart-mobile');
@@ -34,17 +35,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let tableNumber = 'N/A';
 
     // --- FUNGSI-FUNGSI ---
-
-    // PERBAIKAN: Mengambil produk dengan query yang lebih sederhana untuk menghindari error indeks
+    // (Semua fungsi lain seperti fetchProducts, renderProducts, renderCart, dll, sama seperti sebelumnya)
     const fetchProducts = async () => {
         productListEl.innerHTML = '<p class="text-center text-gray-400 col-span-full">Memuat menu...</p>';
         try {
             const productsCollection = collection(db, 'products');
-            const q = query(productsCollection, orderBy("name")); // Cukup urutkan berdasarkan nama
+            const q = query(productsCollection, orderBy("name"));
             const snapshot = await getDocs(q);
-            
             allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
             renderCategories();
             renderProducts();
         } catch (error) {
@@ -52,13 +50,9 @@ document.addEventListener('DOMContentLoaded', () => {
             productListEl.innerHTML = '<p class="text-center text-red-500 col-span-full">Gagal memuat menu. Coba muat ulang halaman.</p>';
         }
     };
-
-    // Menampilkan kategori sebagai tab
     const renderCategories = () => {
         const categories = [...new Set(allProducts.map(p => p.category))].sort();
-        if (categories.length > 0 && !currentCategory) {
-            currentCategory = categories[0];
-        }
+        if (categories.length > 0 && !currentCategory) { currentCategory = categories[0]; }
         categoryTabsEl.innerHTML = '';
         categories.forEach(category => {
             const isActive = category === currentCategory;
@@ -67,8 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
             categoryTabsEl.innerHTML += tab;
         });
     };
-
-    // Menampilkan produk berdasarkan kategori
     const renderProducts = () => {
         productListEl.innerHTML = '';
         const filteredProducts = allProducts.filter(p => p.category === currentCategory);
@@ -77,23 +69,8 @@ document.addEventListener('DOMContentLoaded', () => {
             productListEl.innerHTML += card;
         });
     };
-
-    // Menampilkan item di dalam kedua keranjang (desktop & mobile)
     const renderCart = () => {
-        const cartHTML = cart.map(item => `
-            <div class="flex items-center gap-4">
-                <img src="${item.image}" alt="${item.name}" class="w-16 h-16 object-cover rounded-md">
-                <div class="flex-1">
-                    <p class="font-semibold text-sm">${item.name}</p>
-                    <p class="text-gray-400 text-xs">${formatRupiah(item.price)}</p>
-                </div>
-                <div class="flex items-center gap-3 bg-[#1F1D2B] rounded-md p-1">
-                    <button class="quantity-change w-6 h-6 font-bold" data-id="${item.id}" data-change="-1">-</button>
-                    <span>${item.quantity}</span>
-                    <button class="quantity-change w-6 h-6 font-bold" data-id="${item.id}" data-change="1">+</button>
-                </div>
-            </div>`).join('');
-
+        const cartHTML = cart.map(item => `<div class="flex items-center gap-4"><img src="${item.image}" alt="${item.name}" class="w-16 h-16 object-cover rounded-md"><div class="flex-1"><p class="font-semibold text-sm">${item.name}</p><p class="text-gray-400 text-xs">${formatRupiah(item.price)}</p></div><div class="flex items-center gap-3 bg-[#1F1D2B] rounded-md p-1"><button class="quantity-change w-6 h-6 font-bold" data-id="${item.id}" data-change="-1">-</button><span>${item.quantity}</span><button class="quantity-change w-6 h-6 font-bold" data-id="${item.id}" data-change="1">+</button></div></div>`).join('');
         if (cart.length === 0) {
             cartItemsDesktopEl.innerHTML = ''; emptyCartDesktopEl.classList.remove('hidden');
             cartItemsMobileEl.innerHTML = ''; emptyCartMobileEl.classList.remove('hidden');
@@ -103,14 +80,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         updateCartSummary();
     };
-
-    // Mengupdate semua ringkasan total (desktop & mobile)
     const updateCartSummary = () => {
         const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         const tax = subtotal * 0.10;
         const total = subtotal + tax;
         const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-
         subtotalDesktopEl.textContent = subtotalMobileEl.textContent = formatRupiah(subtotal);
         taxDesktopEl.textContent = taxMobileEl.textContent = formatRupiah(tax);
         totalDesktopEl.textContent = totalMobileEl.textContent = formatRupiah(total);
@@ -118,8 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
         mobileCartCount.classList.toggle('hidden', totalItems === 0);
         checkoutBtnDesktop.disabled = checkoutBtnMobile.disabled = cart.length === 0;
     };
-
-    // Fungsi untuk menambah, mengurangi, atau menghapus item
     const updateQuantity = (productId, change) => {
         const cartItem = cart.find(item => item.id === productId);
         if (!cartItem) return;
@@ -127,8 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (cartItem.quantity <= 0) cart = cart.filter(item => item.id !== productId);
         renderCart();
     };
-
-    // Fungsi untuk menambahkan produk ke keranjang
     const addToCart = (productId) => {
         const product = allProducts.find(p => p.id === productId);
         if (!product) return;
@@ -136,28 +106,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (existingItem) { existingItem.quantity++; } else { cart.push({ ...product, quantity: 1 }); }
         renderCart();
     };
-
-    // --- INISIALISASI & EVENT LISTENERS ---
     const getTableNumber = () => {
         const urlParams = new URLSearchParams(window.location.search);
         const table = urlParams.get('table');
-        if (table) { tableNumber = table; tableInfoEl.textContent = `Memesan untuk Meja #${tableNumber}`; } 
+        if (table) { tableNumber = table; tableInfoEl.textContent = `Memesan untuk Meja #${tableNumber}`; }
         else { tableInfoEl.textContent = 'Nomor meja tidak valid!'; tableInfoEl.classList.add('text-red-500'); }
     };
-
-    productListEl.addEventListener('click', (e) => { const card = e.target.closest('[data-id]'); if (card) addToCart(card.dataset.id); });
-    categoryTabsEl.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { currentCategory = e.target.dataset.category; renderCategories(); renderProducts(); } });
-    
-    // Event listener untuk keranjang desktop dan mobile
-    [cartItemsDesktopEl, cartItemsMobileEl].forEach(el => {
-        el.addEventListener('click', (e) => { if (e.target.classList.contains('quantity-change')) { const id = e.target.dataset.id; const change = parseInt(e.target.dataset.change); updateQuantity(id, change); } });
-    });
-
-    // Event listener untuk tombol keranjang mobile
-    mobileCartBtn.addEventListener('click', () => mobileCartModal.classList.remove('hidden'));
-    closeMobileCartBtn.addEventListener('click', () => mobileCartModal.classList.add('hidden'));
-
-    // Fungsi submit order
     const submitOrder = async () => {
         if (cart.length === 0) return;
         checkoutBtnDesktop.disabled = checkoutBtnMobile.disabled = true;
@@ -168,13 +122,44 @@ document.addEventListener('DOMContentLoaded', () => {
             successModal.classList.remove('hidden');
             cart = [];
             renderCart();
-            mobileCartModal.classList.add('hidden');
-        } catch (e) { console.error("Error adding document: ", e); alert("Gagal mengirim pesanan."); } 
+            closeMobileCart();
+        } catch (e) { console.error("Error adding document: ", e); alert("Gagal mengirim pesanan."); }
         finally {
             checkoutBtnDesktop.disabled = checkoutBtnMobile.disabled = false;
             checkoutBtnDesktop.textContent = checkoutBtnMobile.textContent = 'Pesan Sekarang';
         }
     };
+    
+    // --- EVENT LISTENERS (dengan perbaikan untuk modal mobile) ---
+    productListEl.addEventListener('click', (e) => { const card = e.target.closest('[data-id]'); if (card) addToCart(card.dataset.id); });
+    categoryTabsEl.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { currentCategory = e.target.dataset.category; renderCategories(); renderProducts(); } });
+    [cartItemsDesktopEl, cartItemsMobileEl].forEach(el => {
+        el.addEventListener('click', (e) => { if (e.target.classList.contains('quantity-change')) { const id = e.target.dataset.id; const change = parseInt(e.target.dataset.change); updateQuantity(id, change); } });
+    });
+
+    // PERBAIKAN: Logika animasi yang lebih andal untuk modal mobile
+    const openMobileCart = () => {
+        // 1. Tampilkan modal overlay
+        mobileCartModal.classList.remove('hidden');
+        // 2. Paksa browser untuk memproses perubahan tampilan (reflow)
+        //    Ini adalah trik agar animasi transisi berjalan dengan benar.
+        void mobileCartSheet.offsetWidth; 
+        // 3. Mulai animasi slide-up dengan menghapus class 'translate-y-full'
+        mobileCartSheet.classList.remove('translate-y-full');
+    };
+
+    const closeMobileCart = () => {
+        // 1. Mulai animasi slide-down dengan menambahkan kembali class 'translate-y-full'
+        mobileCartSheet.classList.add('translate-y-full');
+        // 2. Dengarkan event 'transitionend' untuk mengetahui kapan animasi selesai
+        mobileCartSheet.addEventListener('transitionend', () => {
+            // 3. Sembunyikan modal overlay HANYA SETELAH animasi selesai
+            mobileCartModal.classList.add('hidden');
+        }, { once: true }); // Opsi { once: true } membuat event listener ini hanya berjalan sekali
+    };
+
+    mobileCartBtn.addEventListener('click', openMobileCart);
+    closeMobileCartBtn.addEventListener('click', closeMobileCart);
     
     checkoutBtnDesktop.addEventListener('click', submitOrder);
     checkoutBtnMobile.addEventListener('click', submitOrder);
